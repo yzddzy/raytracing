@@ -14,6 +14,9 @@ pub trait Material {
 /// `Lambertian` now takes a generic parameter `T`.
 /// This reduces the overhead of using `Box<dyn Texture>`
 
+pub fn fmin(a: f64, b: f64) -> f64 {
+    if a>b {b} else {a}
+}
 
 pub struct Lambertian {
     albedo: Vec3,
@@ -79,5 +82,46 @@ pub struct BVHNode<L: Hitable, R: Hitable> {
 impl<L: Hitable, R: Hitable> BVHNode<L, R> {
     pub fn construct(_left: Box<L>, _right: Box<R>) -> Self {
         unimplemented!()
+    }
+}
+pub struct Dielectric {
+    ref_idx: f64,
+}
+impl Dielectric {
+    pub fn new(ref_idx: f64) -> Self {
+        Self { ref_idx }
+    }
+    fn reflectance(cosine: f64, ref_idx: f64) -> f64 {
+        let mut r0 = (1.0 - ref_idx) / (1.0 + ref_idx);
+        r0 = r0 * r0;
+        r0+(1.0 - r0)*(1.0 - cosine).powi(5)
+    }
+}
+impl Material for Dielectric {
+    fn scatter(
+        &self,
+        r_in: &Ray,
+        rec: &hit_record,
+        attenuation: &mut Vec3,
+        scattered: &mut Ray,
+    ) -> bool {
+        *attenuation = Vec3::new(1.0, 1.0, 1.0);
+        let refraction_ratio = if rec.front_face {
+            1.0 / self.ref_idx
+        } else {
+            self.ref_idx
+        };
+        let unit_direction = Vec3::unit(&r_in.direction());
+        let cos_theta = fmin(-unit_direction.clone() * rec.normal.clone(), 1.0);
+        let sin_theta = (1.0 - cos_theta * cos_theta).sqrt();
+        let cannot_refract = refraction_ratio * sin_theta > 1.0;
+        let direction =
+            if cannot_refract || Self::reflectance(cos_theta, refraction_ratio) > rand::random::<f64>() {
+                Vec3::reflect(&unit_direction, &rec.normal)
+            } else {
+                Vec3::refract(&unit_direction, &rec.normal, refraction_ratio)
+            };
+        *scattered = Ray::new(rec.p.clone(), direction);
+        true
     }
 }
