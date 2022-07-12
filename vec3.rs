@@ -1,9 +1,4 @@
-use std::ops::{Add, AddAssign};
-use std::ops::{Sub, SubAssign};
-use std::ops::{Mul, MulAssign};
-use std::ops::{Div};
-use std::ops::{Neg};
-
+use std::ops::{Add,AddAssign,Sub,SubAssign,Mul,MulAssign,Div,Neg};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Vec3 {
@@ -30,15 +25,15 @@ impl Vec3 {
     }
 
     pub fn length(&self) -> f64 {
-        ( (self.x * self.x + self.y * self.y + self.z * self.z) as f64).sqrt()
+        ( self.squared_length()).sqrt()
     }
 
     pub fn unit(&self) -> Self {
-        if ( (self.x * self.x + self.y * self.y + self.z * self.z) as f64) != 0.0 {
+        if ( self.squared_length()) != 0.0 {
             Self {
-                x: self.x / ( (self.x * self.x + self.y * self.y + self.z * self.z) as f64).sqrt(),
-                y: self.y / ( (self.x * self.x + self.y * self.y + self.z * self.z) as f64).sqrt(),
-                z: self.z / ( (self.x * self.x + self.y * self.y + self.z * self.z) as f64).sqrt(),
+                x: self.x /  (self.length()),
+                y: self.y /  (self.length()),
+                z: self.z /  (self.length()),
             }
         } else {
             panic!();
@@ -67,7 +62,7 @@ impl Vec3 {
             y: self.y ,
             z: self.z ,
         }
-    }
+    }  
     
     pub fn random() -> Self {
         Self::new(
@@ -95,30 +90,12 @@ impl Vec3 {
         }
     }
    
-    pub fn random_in_hemisphere(normal: &Vec3) -> Self {
-        let in_unit_sphere = Self::random_in_unit_sphere();
-        if in_unit_sphere.clone() * normal.clone() > 0.0 {
-            in_unit_sphere.clone()
-        } else {
-            -in_unit_sphere.clone()
-        }
-    }
-    pub fn near_zero(&self) -> bool {   
-        self.x.abs() < 1e-8 && self.y.abs() < 1e-8 && self.z.abs() < 1e-8
-    }
-    pub fn reflect(v: &Vec3, n: &Vec3) -> Self {
-        v.clone() - n.clone() * 2.0 * (v.clone() * n.clone())
-    }
-    pub fn random_unit_vector() -> Self {
-        Self::unit(&Self::random_in_unit_sphere())
-    }
-    pub fn refract(r_in: &Vec3, n: &Vec3, eta: f64) -> Self {
-        let cos_theta = -(r_in.clone() * n.clone());
-        let r_out_perpendicular = (r_in.clone() + n.clone() * cos_theta) * eta;
-        let r_out_parallel = -n.clone() * (1.0 - r_out_perpendicular.clone().squared_length()).abs().sqrt();
-        r_out_perpendicular.clone() + r_out_parallel.clone()
-    }
+    
+    
    
+
+    
+
 }
 
 impl Add for Vec3 {
@@ -256,9 +233,9 @@ impl Neg for Vec3 {
 
     fn neg(self) -> Self {
         Self {
-            x: self.x * (-1)as f64,
-            y: self.y * (-1)as f64,
-            z: self.z * (-1)as f64,
+            x: -self.x ,
+            y: -self.y ,
+            z: -self.z ,
         }
     }
 }

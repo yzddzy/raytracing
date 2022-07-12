@@ -27,23 +27,18 @@ pub fn degrees_to_radians(degrees: f64) {
     degrees * PI / 180.0;
 }
 fn main(){
-    const aspect_ratio:f64 = 16.0 / 9.0;
-    const image_width:u32 = 400;
+    const aspect_ratio:f64 = 3.0 / 2.0;
+    const image_width:u32 = 1200;
     const image_height:u32 =(image_width as f64/ aspect_ratio)as u32;
-    const samples_per_pixel:u32 = 100;
+    const samples_per_pixel:u32 = 500;
     const max_depth:u32 = 50;
-    let cam=Camera::new();
-    let mut world = hittable::HittableList::new();
-    let material_ground = Lambertian::new(Vec3::new(0.8, 0.8, 0.0));
-    let material_center =  Rc::new(Lambertian::new(Vec3::new(0.1, 0.2, 0.5)));
-    let material_left = Rc::new(Dielectric::new(1.5));
-    let material_right = Rc::new(Metal::new(Vec3::new(0.8, 0.6, 0.2), 0.0));
-    world.add(Box::new(sphere::Sphere::new(Vec3::new(0.0, -100.5, -1.0),100.0, Rc::new(material_ground),)));
-    world.add(Box::new(sphere::Sphere::new(Vec3::new(0.0, 0.0, -1.0),0.5,material_center.clone())));
-    world.add(Box::new(sphere::Sphere::new(Vec3::new(-1.0, 0.0, -1.0),0.5,material_left.clone())));
-    world.add(Box::new(sphere::Sphere::new(Vec3::new(-1.0, 0.0, -1.0),-0.4,material_left.clone())));
-    world.add(Box::new(sphere::Sphere::new(Vec3::new(1.0, 0.0, -1.0),0.5,material_right.clone())));
-    
+    let lookfrom=Vec3::new(13.0,2.0,3.0);
+    let lookat=Vec3::new(0.0,0.0,0.0);
+    let vup=Vec3::new(0.0,1.0,0.0);
+    let dist_to_focus = 10.0;
+    let aperture = 0.1;
+    let cam = Camera::new(lookfrom, lookat, vup, 20.0, aspect_ratio, aperture, dist_to_focus);
+    let mut world=random_scene();
     println!("P3");
     println!{"{} {}",image_width, image_height };
     println!{"255"};
@@ -112,4 +107,43 @@ pub fn clamp(x: f64, min: f64, max: f64) -> f64 {
     } else {
         x
     }
+}
+fn random_scene()->hittable::HittableList{
+    let mut world = hittable::HittableList::new();
+    let material_ground = Rc::new(Lambertian::new(Vec3::new(0.5, 0.5, 0.5)));
+    world.add(Box::new(sphere::Sphere::new(Vec3::new(0.0, -1000.0, 0.0),1000.0,material_ground.clone())));
+
+    for a in -11..11{
+        for b in -11..11{
+            let choose_mat = random_double();
+            let center=Vec3::new((a as f64)+0.9*random_double(),0.2,(b as f64) + 0.9*random_double());
+
+            if (center.clone() - Vec3::new(4.0, 0.2, 0.0)).length() > 0.9 {
+                if (choose_mat < 0.8) {
+                    let albedo =Vec3::elemul(Vec3::random(),Vec3::random());
+                    let sphere_material = Rc::new(Lambertian::new(albedo));
+                    world.add(Box::new(sphere::Sphere::new(center.clone(),0.2,sphere_material.clone())));
+                } else if (choose_mat < 0.95) {
+                    let albedo = Vec3::random_in_range(0.5, 1.0);
+                    let fuzz = random_double_in_range(0.0, 0.5);
+                    let sphere_material = Rc::new(Metal::new(albedo, fuzz));
+                    world.add(Box::new(sphere::Sphere::new(center.clone(),0.2,sphere_material.clone())));
+                } else {
+                    let sphere_material = Rc::new(Dielectric::new(1.5));
+                    world.add(Box::new(sphere::Sphere::new(center.clone(),0.2,sphere_material.clone())));
+                }
+            }
+        }
+    }
+
+    let material1 = Rc::new(Dielectric::new(1.5));
+    world.add(Box::new(sphere::Sphere::new(Vec3::new(0.0, 1.0, 0.0), 1.0, material1.clone())));
+
+    let material2 = Rc::new(Lambertian::new(Vec3::new(0.4, 0.2, 0.1)));
+    world.add(Box::new(sphere::Sphere::new(Vec3::new(-4.0, 1.0, 0.0), 1.0, material2.clone())));
+
+    let material3 = Rc::new(Metal::new(Vec3::new(0.7, 0.6, 0.5), 0.0));
+    world.add(Box::new(sphere::Sphere::new(Vec3::new(4.0, 1.0, 0.0), 1.0, material3.clone())));
+
+    world
 }
