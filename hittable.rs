@@ -1,19 +1,23 @@
 use crate::ray::Ray;
 use crate::vec3::Vec3;
-#[derive(Clone, Debug, PartialEq)]
+use crate::material::Material;
+use std::rc::Rc;
+#[derive(Clone)]
 pub struct hit_record {
     pub p: Vec3,      
     pub normal: Vec3, 
+    pub material: Rc<dyn Material>,
     pub t: f64,    
     pub front_face: bool,
 }
 impl hit_record{
-    pub fn new(p: Vec3, normal: Vec3, t: f64, front_face: bool) -> Self {
+    pub fn new(material: Rc<dyn Material>) -> Self {
         Self {
-            p,
-            normal,
-            t,
-            front_face,
+            p: Vec3::zero(),
+            normal: Vec3::zero(),
+            t: 0.0,
+            front_face: true,
+            material:material,
         }
     }
     pub fn set_face_normal(&mut self, r: Ray, outward_normal: Vec3) {
@@ -44,7 +48,7 @@ impl HittableList {
 }
 impl Hittable for HittableList {
     fn hit(&self, ray: Ray, t_min: f64, t_max: f64, rec: &mut hit_record) -> bool {
-        let mut temp_rec = hit_record::new(Vec3::zero(),Vec3::zero(),0.0,false);
+        let mut temp_rec = rec.clone();
         let mut hit_anything = false;
         let mut closest_so_far = t_max;
         for object in &self.list {

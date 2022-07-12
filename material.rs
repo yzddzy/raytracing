@@ -1,27 +1,57 @@
-#![allow(dead_code)]
-#![allow(clippy::boxed_local)]
+extern crate rand;
+use crate::hittable::hit_record;
+use crate::ray::Ray;
+use crate::vec3::Vec3;
 // You SHOULD remove above line in your code.
 
 // This file shows necessary examples of how to complete Track 4 and 5.
 
 pub trait Texture {}
-pub trait Material {}
+pub trait Material {
+    fn scatter(&self,r_in: &Ray,rec: &hit_record,attenuation: &mut Vec3,scattered: &mut Ray) -> bool;
+}
 
 /// `Lambertian` now takes a generic parameter `T`.
 /// This reduces the overhead of using `Box<dyn Texture>`
-#[derive(Clone)]
-pub struct Lambertian<T: Texture> {
-    pub albedo: T,
-}
 
-impl<T: Texture> Lambertian<T> {
-    pub fn new(albedo: T) -> Self {
+
+pub struct Lambertian {
+    albedo: Vec3,
+}
+impl Lambertian {
+    pub fn new(albedo: Vec3) -> Self {
         Self { albedo }
     }
 }
-
-impl<T: Texture> Material for Lambertian<T> {}
-
+impl Material for Lambertian {
+    fn scatter(&self,_r_in: &Ray,rec: &hit_record,attenuation: &mut Vec3,scattered: &mut Ray) -> bool {
+        let mut scatter_direction = rec.normal.clone() + Vec3::random_unit_vector();
+        if scatter_direction.near_zero() {
+            scatter_direction = rec.normal.clone();
+        }
+        *scattered = Ray::new(rec.p.clone(), scatter_direction);
+        *attenuation = self.albedo.clone();
+        true
+    }}
+    pub struct Metal {
+        albedo: Vec3,
+        fuzz: f64,
+    } 
+    impl Metal {
+        pub fn new(albedo: Vec3, fuzz: f64) -> Self {
+            Self { 
+                albedo,
+                fuzz: if fuzz < 1.0 { fuzz } else { 1.0 },}
+        }
+    }
+    impl Material for Metal {
+        fn scatter(&self,r_in: &Ray,rec: &hit_record,attenuation: &mut Vec3,scattered: &mut Ray) -> bool {
+            let reflected = Vec3::reflect(&Vec3::unit(&r_in.direction()), &rec.normal.clone());
+            *scattered = Ray::new(rec.p.clone(), reflected+ Vec3::random_in_unit_sphere() * self.fuzz);
+            *attenuation = self.albedo.clone();
+            scattered.direction() * rec.normal.clone() > 0.0
+        }
+    } 
 pub trait Hitable {}
 pub struct AABB;
 

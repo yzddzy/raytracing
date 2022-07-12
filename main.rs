@@ -11,8 +11,11 @@ pub use hittable::*;
 mod sphere;
 use std::f64::consts::PI;
 use std::f64::INFINITY;
+use std::rc::Rc;
 mod camera;
 pub use camera::Camera;
+mod material;
+pub use material ::*;
 pub fn random_double() -> f64 {
     rand::random::<f64>()
 }
@@ -31,8 +34,15 @@ fn main(){
     const max_depth:u32 = 50;
     let cam=Camera::new();
     let mut world = hittable::HittableList::new();
-    world.add(Box::new(sphere::Sphere::new(Vec3::new(0.0, 0.0, -1.0),0.5,)));
-    world.add(Box::new(sphere::Sphere::new(Vec3::new(0.0, -100.5, -1.0),100.0,)));
+    let material_ground = Lambertian::new(Vec3::new(0.8, 0.8, 0.0));
+    let material_center = Lambertian::new(Vec3::new(0.7, 0.3, 0.3));
+    let material_left = Metal::new(Vec3::new(0.8, 0.8, 0.8),0.3);
+    let material_right = Metal::new(Vec3::new(0.8, 0.6, 0.2),1.0);
+    world.add(Box::new(sphere::Sphere::new(Vec3::new(0.0, -100.5, -1.0),100.0, Rc::new(material_ground),)));
+    world.add(Box::new(sphere::Sphere::new(Vec3::new(0.0, 0.0, -1.0),0.5,Rc::new(material_center))));
+    world.add(Box::new(sphere::Sphere::new(Vec3::new(-1.0, 0.0, -1.0),0.5,Rc::new(material_left))));
+    world.add(Box::new(sphere::Sphere::new(Vec3::new(1.0, 0.0, -1.0),0.5,Rc::new(material_right))));
+    
     println!("P3");
     println!{"{} {}",image_width, image_height };
     println!{"255"};
@@ -50,13 +60,17 @@ fn main(){
     }
 }
 pub fn ray_color(r:&Ray,world:&hittable::HittableList,depth:u32)->Vec3{
-    let mut rec = hit_record::new(Vec3::zero(),Vec3::zero(),0.0,false);
+    let mut rec = hit_record::new(Rc::new(Lambertian::new(Vec3::new(0.0,0.0,0.0))));
     if depth<=0{
         return Vec3::new(0.0,0.0,0.0);
     }
-    if world.hit((*r).clone(),0.0,INFINITY,&mut rec){
-        let target = rec.clone().p + Vec3::random_in_hemisphere(&rec.clone().normal);
-        return ray_color(&Ray::new(rec.clone().p, target - rec.clone().p),world,depth - 1) * 0.5;
+    if world.hit((*r).clone(),0.00001,INFINITY,&mut rec){
+        let mut scattered = Ray::new(Vec3::new(0.0,0.0,0.0),Vec3::new(0.0,0.0,0.0));
+        let mut attenuation = Vec3::new(0.0,0.0,0.0);
+        if rec.material.scatter(&r, &rec, &mut attenuation, &mut scattered){
+            return Vec3::elemul(attenuation, ray_color(&scattered, world, depth - 1));
+        }
+        return Vec3::new(0.0,0.0,0.0);
     }
     else
     {let unit_direction=r.direction().unit();
