@@ -63,6 +63,46 @@ impl Vec3 {
             z: self.z ,
         }
     }  
+    
+    pub fn random() -> Self {
+        Self::new(
+            rand::random::<f64>(),
+            rand::random::<f64>(),
+            rand::random::<f64>(),
+        )
+    }
+
+    pub fn random_in_range(min: f64, max: f64) -> Self {
+        Self::new(
+            min + (max - min) * rand::random::<f64>(),
+            min + (max - min) * rand::random::<f64>(),
+            min + (max - min) * rand::random::<f64>(),
+        )
+    }
+
+    pub fn random_in_unit_sphere() -> Self {
+        loop {
+            let p = Self::random_in_range(-1.0, 1.0);
+            if p.squared_length() >= 1.0 {
+                continue;
+            }
+            return p;
+        }
+    }
+   
+    pub fn random_in_hemisphere(normal: &Vec3) -> Self {
+        let in_unit_sphere = Self::random_in_unit_sphere();
+        if in_unit_sphere.clone() * normal.clone() > 0.0 {
+            in_unit_sphere.clone()
+        } else {
+            -in_unit_sphere.clone()
+        }
+    }
+    
+   
+
+    
+
 }
 
 impl Add for Vec3 {
